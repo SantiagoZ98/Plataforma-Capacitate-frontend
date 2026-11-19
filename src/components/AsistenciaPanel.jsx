@@ -219,7 +219,7 @@ export default function AsistenciaPanel({ asistenciaUrl = '/api/inscripciones/as
     const alto = 15
 
     if (logoDataUrl) {
-      doc.addImage(logoDataUrl, 'PNG', fotoX, fotoY-8, ancho, alto);
+      doc.addImage(logoDataUrl, 'PNG', fotoX, fotoY-2, ancho, alto);
     }
 
     const tituloX = fotoX + ancho + 15;
@@ -230,13 +230,13 @@ export default function AsistenciaPanel({ asistenciaUrl = '/api/inscripciones/as
     doc.setDrawColor(...BORDE);
     doc.setLineWidth(0.3);
     // Línea izquierda
-    doc.line(tituloX -10 , tituloY , tituloX, tituloY + 25);
+    doc.line(tituloX -10 , tituloY , tituloX - 10, tituloY + 25);
 
     // Texto del título
     doc.setFontSize(9.5);
     doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'bold');
-    doc.text('REGISTRO DE ASISTENCIA Y PARTICIPACIÓN', tituloX + (tituloW / 2) + 20 ,  tituloY + (tituloAlto / 2) -10 , { align: 'center' });
+    doc.text('REGISTRO DE ASISTENCIA Y PARTICIPACIÓN', tituloX + (tituloW / 2) + 20 ,  tituloY + (tituloAlto / 2) , { align: 'center' });
 
     y += tituloH;
 
@@ -520,7 +520,7 @@ export default function AsistenciaPanel({ asistenciaUrl = '/api/inscripciones/as
     const alto = 15
 
     if (logoDataUrl) {
-      doc.addImage(logoDataUrl, 'PNG', fotoX, fotoY-8, ancho, alto);
+      doc.addImage(logoDataUrl, 'PNG', fotoX, fotoY-2, ancho, alto);
     }
 
     const tituloX = fotoX + ancho + 15;
@@ -531,13 +531,13 @@ export default function AsistenciaPanel({ asistenciaUrl = '/api/inscripciones/as
     doc.setDrawColor(...BORDE);
     doc.setLineWidth(0.3);
     // Línea izquierda
-    doc.line(tituloX -10 , tituloY , tituloX, tituloY + 25);
+    doc.line(tituloX -10 , tituloY , tituloX - 10, tituloY + 25);
 
     // Texto del título
     doc.setFontSize(9.5);
     doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'bold');
-    doc.text('REGISTRO DE ASISTENCIA Y PARTICIPACIÓN', tituloX + (tituloW / 2) + 20 ,  tituloY + (tituloAlto / 2) - 10, { align: 'center' });
+    doc.text('REGISTRO DE ASISTENCIA Y PARTICIPACIÓN', tituloX + (tituloW / 2) + 20 ,  tituloY + (tituloAlto / 2) , { align: 'center' });
 
     y += tituloH;
 
