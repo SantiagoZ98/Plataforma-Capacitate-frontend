@@ -219,7 +219,7 @@ export default function AsistenciaPanel({ asistenciaUrl = '/api/inscripciones/as
     const alto = 25
 
     if (logoDataUrl) {
-      doc.addImage(logoDataUrl, 'PNG', fotoX, fotoY, ancho, alto);
+      doc.addImage(logoDataUrl, 'PNG', fotoX, fotoY-8, ancho, alto);
     }
 
     const tituloX = fotoX + ancho + 15;
@@ -520,7 +520,7 @@ export default function AsistenciaPanel({ asistenciaUrl = '/api/inscripciones/as
     const alto = 25
 
     if (logoDataUrl) {
-      doc.addImage(logoDataUrl, 'PNG', fotoX, fotoY, ancho, alto);
+      doc.addImage(logoDataUrl, 'PNG', fotoX, fotoY-8, ancho, alto);
     }
 
     const tituloX = fotoX + ancho + 15;
@@ -772,7 +772,7 @@ export default function AsistenciaPanel({ asistenciaUrl = '/api/inscripciones/as
             disabled={!pdfActivo}
             style={{ opacity: pdfActivo ? 1 : 0.45, cursor: pdfActivo ? 'pointer' : 'not-allowed' }}
           >
-            <Download size={15} className="me-1" /> PDF
+            <Download size={15} className="me-1" /> PDF 2026
           </button>
 
           <button
