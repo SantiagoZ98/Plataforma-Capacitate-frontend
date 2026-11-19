@@ -236,7 +236,7 @@ export default function AsistenciaPanel({ asistenciaUrl = '/api/inscripciones/as
     doc.setFontSize(9.5);
     doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'bold');
-    doc.text('REGISTRO DE ASISTENCIA Y PARTICIPACIÓN', tituloX + (tituloW / 2) + 20 ,  tituloY + (tituloAlto / 2) , { align: 'center' });
+    doc.text('REGISTRO DE ASISTENCIA Y PARTICIPACIÓN', tituloX + (tituloW / 2) + 20 ,  tituloY + (tituloAlto / 2) + 5 , { align: 'center' });
 
     y += tituloH;
 
@@ -537,7 +537,7 @@ export default function AsistenciaPanel({ asistenciaUrl = '/api/inscripciones/as
     doc.setFontSize(9.5);
     doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'bold');
-    doc.text('REGISTRO DE ASISTENCIA Y PARTICIPACIÓN', tituloX + (tituloW / 2) + 20 ,  tituloY + (tituloAlto / 2) , { align: 'center' });
+    doc.text('REGISTRO DE ASISTENCIA Y PARTICIPACIÓN', tituloX + (tituloW / 2) + 20 ,  tituloY + (tituloAlto / 2) + 5, { align: 'center' });
 
     y += tituloH;
 
