@@ -216,7 +216,7 @@ export default function AsistenciaPanel({ asistenciaUrl = '/api/inscripciones/as
     const fotoX = mL + 5;
     const fotoY = y + 5;
     const ancho = 60
-    const alto = 25
+    const alto = 15
 
     if (logoDataUrl) {
       doc.addImage(logoDataUrl, 'PNG', fotoX, fotoY-8, ancho, alto);
@@ -230,7 +230,7 @@ export default function AsistenciaPanel({ asistenciaUrl = '/api/inscripciones/as
     doc.setDrawColor(...BORDE);
     doc.setLineWidth(0.3);
     // Línea izquierda
-    doc.line(tituloX -10 , tituloY , tituloX - 10, tituloY + 25);
+    doc.line(tituloX -10 , tituloY , tituloX, tituloY + 25);
 
     // Texto del título
     doc.setFontSize(9.5);
@@ -517,7 +517,7 @@ export default function AsistenciaPanel({ asistenciaUrl = '/api/inscripciones/as
     const fotoX = mL + 5;
     const fotoY = y + 5;
     const ancho = 60
-    const alto = 25
+    const alto = 15
 
     if (logoDataUrl) {
       doc.addImage(logoDataUrl, 'PNG', fotoX, fotoY-8, ancho, alto);
@@ -531,7 +531,7 @@ export default function AsistenciaPanel({ asistenciaUrl = '/api/inscripciones/as
     doc.setDrawColor(...BORDE);
     doc.setLineWidth(0.3);
     // Línea izquierda
-    doc.line(tituloX -10 , tituloY , tituloX - 10, tituloY + 25);
+    doc.line(tituloX -10 , tituloY , tituloX, tituloY + 25);
 
     // Texto del título
     doc.setFontSize(9.5);
