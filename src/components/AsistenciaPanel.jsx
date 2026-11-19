@@ -219,7 +219,7 @@ export default function AsistenciaPanel({ asistenciaUrl = '/api/inscripciones/as
     const alto = 25
 
     if (logoDataUrl) {
-      doc.addImage(logoDataUrl, 'PNG', fotoX, fotoY-17, ancho, alto);
+      doc.addImage(logoDataUrl, 'PNG', fotoX, fotoY, ancho, alto);
     }
 
     const tituloX = fotoX + ancho + 15;
@@ -520,7 +520,7 @@ export default function AsistenciaPanel({ asistenciaUrl = '/api/inscripciones/as
     const alto = 25
 
     if (logoDataUrl) {
-      doc.addImage(logoDataUrl, 'PNG', fotoX, fotoY-17, ancho, alto);
+      doc.addImage(logoDataUrl, 'PNG', fotoX, fotoY, ancho, alto);
     }
 
     const tituloX = fotoX + ancho + 15;
