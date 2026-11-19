@@ -1,0 +1,85 @@
+export const cursoOtrosRelacionados = {
+  id: 4,
+  nombre: "Otros relacionados para establecer el trabajo de igual valor",
+  descripcion:
+    "Conoce temas que también estan ligados a un buen entorno laboral.",
+  descripcion2:
+    "NOTA: Cada vez que vayas avanzando DA CLICK en Marcar Como Completado para registrar tu progreso.",
+  niveles: [
+    {
+        id: 401,
+        titulo: "Principios de Igualdad de Remuneración",
+        tipo: "video",
+        url: "https://www.youtube.com/watch?v=dQClIVFiNzM", 
+        completado: false,
+        width: "200",
+        height: "215",
+        descripcion: "Video sobre la violencia y discriminación en el trabajo."
+    },
+    {
+        id: 402,
+        titulo: "Estructura Salarial Transparente y Equitativa",
+        tipo: "imagen",
+        url: "https://ortewujmiggxjglhdmie.supabase.co/storage/v1/object/public/modulos/1/1206.jpg",
+        completado: false,
+        descripcion: "Revisa el contenido de la siguiente infografía."
+    },
+    {
+        id: 403,
+        titulo: "Auditoría Retribuida y Corrección de brechas",
+        tipo: "imagen",
+        url: "https://ortewujmiggxjglhdmie.supabase.co/storage/v1/object/public/modulos/1/1203.jpg",
+        completado: false,
+        descripcion: "Revisa el contenido de la siguiente infografía."
+
+    },
+    {
+      id: 404,
+      titulo: "Eliminación de Estereotipos y Roles de Género",
+      tipo: "imagen",
+      url: "https://ortewujmiggxjglhdmie.supabase.co/storage/v1/object/public/modulos/1/1200.jpg",
+      completado: false,
+      descripcion: "Revisa el siguiente contenido"
+    },
+    {
+      id: 405,
+      titulo: "Estereotipos en el Trabajo",
+      tipo: "pdf",
+      url: "/pdf/Estereotipos.pdf",
+      completado: false,
+      descripcion: "Revisa la siguiente información."
+    },
+    {
+      id: 406,
+      titulo: "Evaluación justa del desempeño",
+      tipo: "imagen",
+      url: "https://ortewujmiggxjglhdmie.supabase.co/storage/v1/object/public/modulos/1/1201.jpg",
+      completado: false,
+      descripcion: "Revisa la siguiente infroamción."
+    },
+    {
+      id: 407,
+      titulo: "Evaluación Justa (Presentación)",
+      tipo: "pdf",
+      url: "/pdf/Evaluacion_justa.pdf",
+      completado: false,
+      descripcion: "Revisa la siguiente presentación."
+    },
+    {
+      id: 408,
+      titulo: "Conciliación Laboral y Correspondencia Familiar",
+      tipo: "imagen",
+      url: "https://ortewujmiggxjglhdmie.supabase.co/storage/v1/object/public/modulos/1/1202.jpg",
+      completado: false,
+      descripcion: "Revisa la siguiente información."
+    },
+    {
+      id: 409,
+      titulo: "Conciliación Familiar y la del Trabajo",
+      tipo: "pdf",
+      url: "/pdf/Conciliacion_familiar.pdf",
+      completado: false,
+      descripcion: "Revisa la siguiente presentación."
+    },
+ ],
+};

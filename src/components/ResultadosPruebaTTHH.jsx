@@ -1,0 +1,537 @@
+import { useState, useEffect } from "react";
+import { saveAs } from "file-saver";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+import '../styles/components/resultadosPruebaTTHH.css';
+
+export default function ResultadosPruebaTTHH() {
+  const API_URL = import.meta.env.VITE_API_URL;
+  const token = localStorage.getItem("admin_token");
+  const adminUser = JSON.parse(localStorage.getItem('admin_proceso_user') || '{}');
+
+  const [datos, setDatos] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [filtro, setFiltro] = useState("todos"); // todos | aprobados | reprobados
+  const [noAutorizado, setNoAutorizado] = useState(false);
+
+  useEffect(() => {
+    // Validar que sea administrador
+    if (adminUser.proceso_name !== 'Administrador') {
+      console.warn(`❌ Acceso denegado: solo Administradores pueden ver resultados de pruebas. Proceso actual: ${adminUser.proceso_name || 'No definido'}`);
+      setNoAutorizado(true);
+      setCargando(false);
+      return;
+    }
+    
+    cargarDatos();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const cargarDatos = async () => {
+    setCargando(true);
+    try {
+      const res = await fetch(`${API_URL}/api/resultados/tthh/resumen`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.ok) setDatos(data.data || []);
+      else console.error("Error:", data.message);
+    } catch (err) {
+      console.error("Error cargando resultados:", err);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const datosFiltrados = datos.filter((r) => {
+    if (filtro === "aprobados") return r.aprobado;
+    if (filtro === "reprobados") return !r.aprobado;
+    return true;
+  });
+
+  // EXPORTAR EXCEL con aprobados (EXCLUIR PERSONAS 2026)
+  const exportarExcel = () => {
+    const aprobados = datos.filter((r) => r.aprobado && !estaExcluidoDe2026(r));
+    const filas = aprobados.map((r) => ({
+      "Nombre / Cédula": r.nombre_completo,
+      "Cédula": r.cedula,
+      "Cargo": r.cargo || "-",
+      "Mejor Puntaje (%)": r.mejor_puntaje,
+      "Total Intentos": r.total_intentos,
+      "Fecha Aprobación": r.ultima_fecha
+        ? new Date(r.ultima_fecha).toLocaleDateString("es-EC")
+        : "-",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(filas);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Aprobados");
+
+    // Ajustar ancho de columnas
+    ws["!cols"] = [
+      { wch: 30 }, { wch: 15 }, { wch: 20 }, { wch: 18 }, { wch: 14 }, { wch: 18 },
+    ];
+
+    const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    saveAs(blob, `Aprobados_Prueba_TalentoHumano_${new Date().toISOString().split("T")[0]}.xlsx`);
+  };
+
+  // ── Personas excluidas del certificado 2026 ────────────────────
+  const personasExcluidas2026 = [
+    { nombre: 'Tituaña Yacelga Byron Alejandro', cedula: '1724487754' }
+  ];
+
+  const estaExcluidoDe2026 = (persona) => {
+    return personasExcluidas2026.some(p => 
+      p.cedula === persona.cedula || 
+      p.nombre.toLowerCase() === persona.nombre_completo.toLowerCase()
+    );
+  };
+
+  // GENERAR CERTIFICADO PDF individual (función reutilizable con fecha personalizada)
+  const generarCertificadoConFecha = async (persona, fecha = "Octubre 2026") => {
+    // Validar si el usuario está excluido del certificado 2026
+    if (estaExcluidoDe2026(persona)) {
+      alert('No tienes permiso para descargar este certificado.');
+      return;
+    }
+
+    // jsPDF v3 no carga URLs directamente: precargar imágenes como base64
+    const toBase64 = (url) =>
+      fetch(url)
+        .then((r) => r.blob())
+        .then(
+          (blob) =>
+            new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            })
+        );
+
+    const [logoBase64, firmaBase64] = await Promise.all([
+      toBase64("/img/safemedic.png"),
+      toBase64("/img/firma.png"),
+    ]);
+
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const W = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
+
+    const azulFondo1 = "#0d2d3e";
+    const azulFondo2 = "#00b8c6";
+    const dorado = "#d4af37";
+    const line = "#146781";
+
+    doc.setFillColor(azulFondo2);
+    doc.triangle(0, H, W * 0.40, H, 0, H * 0.5, "F");
+
+    doc.setFillColor(azulFondo1);
+    doc.triangle(0, 0, W * 0.28, 0, W*0, H-60, "F");
+
+    doc.setFillColor(dorado);
+    doc.circle(W * 0.08, H * 0.10, W * 0.07, "F");
+
+    doc.addImage(logoBase64, "PNG", W - 85, 5, 75, 35);
+    doc.setFont("garamond", "bold");
+    doc.setFontSize(70);
+    doc.setTextColor("#d4af37");
+    doc.text("CERTIFICADO", W / 2 + 40, 65, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(16);
+    doc.setTextColor("#444444");
+    doc.text("Otorgado a", W / 2 + 40, 80, { align: "center" });
+
+    doc.setFont("times", "italic");
+    doc.setFontSize(35);
+    doc.setTextColor("#000000");
+    doc.text(persona.nombre_completo, W / 2 + 30, 95, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(14);
+    doc.setTextColor("#000000");
+    doc.text(
+      "Por haber participado con éxito en la capacitación que abarca los siguientes temas:",
+      W / 2 + 35,
+      105,
+      { align: "center" }
+    );
+    doc.setFontSize(12);
+    doc.text("• Derechos laborales de hombres y mujeres", W / 2 + 40, 115, { align: "center" });
+    doc.text("• Igualdad de género", W / 2 + 18, 125, { align: "center" });
+    doc.text("• Erradicación de la violencia y no discriminación", W / 2 + 44, 135, { align: "center" });
+    doc.text("• Otros relacionados para establecer el trabajo de igual valor", W / 2 + 55, 145, { align: "center" });
+
+    doc.setFontSize(15);
+    doc.setTextColor("#000000");
+    doc.text(`Fecha: ${fecha}`, W / 2 + 105, 155, { align: "center" });
+    doc.text("Duración: 40 horas", W / 2 - 35, 155, { align: "center" });
+
+    doc.setDrawColor(line);
+    doc.setLineWidth(0.8);
+    doc.line(W / 2, H - 25, W / 2 + 85, H - 25);
+
+    doc.addImage(firmaBase64, "PNG", W / 2 + 10, H - 58, 65, 32);
+    doc.setFont("times", "italic");
+    doc.text("Abigail Cisneros", W / 2 + 40, H - 15, { align: "center" });
+    doc.text("MAGISTER EN TALENTO HUMANO", W / 2 + 40, H - 7, { align: "center" });
+
+    return doc;
+  };
+
+  // GENERAR CERTIFICADO PDF individual (con fecha Agosto 2026)
+  const generarCertificado = async (persona) => {
+    const doc = await generarCertificadoConFecha(persona, "Octubre 2026");
+    doc.save(`Certificado_${persona.nombre_completo}.pdf`);
+  };
+
+  // DESCARGAR TODOS LOS CERTIFICADOS EN UN SOLO PDF
+  const descargarTodosCertificados = async () => {
+    const aprobados = datos.filter((r) => r.aprobado);
+    if (aprobados.length === 0) {
+      alert("No hay certificados para descargar");
+      return;
+    }
+
+    const toBase64 = (url) =>
+      fetch(url)
+        .then((r) => r.blob())
+        .then(
+          (blob) =>
+            new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            })
+        );
+
+    const [logoBase64, firmaBase64] = await Promise.all([
+      toBase64("/img/safemedic.png"),
+      toBase64("/img/firma.png"),
+    ]);
+
+    const docFinal = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+    for (let index = 0; index < aprobados.length; index++) {
+      const persona = aprobados[index];
+      
+      if (index > 0) {
+        docFinal.addPage();
+      }
+
+      const W = docFinal.internal.pageSize.getWidth();
+      const H = docFinal.internal.pageSize.getHeight();
+
+      const azulFondo1 = "#0d2d3e";
+      const azulFondo2 = "#00b8c6";
+      const dorado = "#d4af37";
+      const line = "#146781";
+
+      docFinal.setFillColor(azulFondo2);
+      docFinal.triangle(0, H, W * 0.40, H, 0, H * 0.5, "F");
+
+      docFinal.setFillColor(azulFondo1);
+      docFinal.triangle(0, 0, W * 0.28, 0, W*0, H-60, "F");
+
+      docFinal.setFillColor(dorado);
+      docFinal.circle(W * 0.08, H * 0.10, W * 0.07, "F");
+
+      docFinal.addImage(logoBase64, "PNG", W - 85, 5, 75, 25);
+      docFinal.setFont("garamond", "bold");
+      docFinal.setFontSize(70);
+      docFinal.setTextColor("#d4af37");
+      docFinal.text("CERTIFICADO", W / 2 + 40, 65, { align: "center" });
+
+      docFinal.setFont("helvetica", "normal");
+      docFinal.setFontSize(16);
+      docFinal.setTextColor("#444444");
+      docFinal.text("Otorgado a", W / 2 + 40, 80, { align: "center" });
+
+      docFinal.setFont("times", "italic");
+      docFinal.setFontSize(35);
+      docFinal.setTextColor("#000000");
+      docFinal.text(persona.nombre_completo, W / 2 + 30, 95, { align: "center" });
+
+      docFinal.setFont("helvetica", "normal");
+      docFinal.setFontSize(14);
+      docFinal.setTextColor("#000000");
+      docFinal.text(
+        "Por haber participado con éxito en la capacitación que abarca los siguientes temas:",
+        W / 2 + 35,
+        105,
+        { align: "center" }
+      );
+      docFinal.setFontSize(12);
+      docFinal.text("• Derechos laborales de hombres y mujeres", W / 2 + 40, 115, { align: "center" });
+      docFinal.text("• Igualdad de género", W / 2 + 18, 125, { align: "center" });
+      docFinal.text("• Erradicación de la violencia y no discriminación", W / 2 + 44, 135, { align: "center" });
+      docFinal.text("• Otros relacionados para establecer el trabajo de igual valor", W / 2 + 55, 145, { align: "center" });
+
+      docFinal.setFontSize(15);
+      docFinal.setTextColor("#000000");
+      docFinal.text("Fecha: Octubre 2026", W / 2 + 105, 155, { align: "center" });
+      docFinal.text("Duración: 40 horas", W / 2 - 35, 155, { align: "center" });
+
+      docFinal.setDrawColor(line);
+      docFinal.setLineWidth(0.8);
+      docFinal.line(W / 2, H - 25, W / 2 + 85, H - 25);
+
+      docFinal.addImage(firmaBase64, "PNG", W / 2 + 10, H - 58, 65, 32);
+      docFinal.setFont("times", "italic");
+      docFinal.text("Abigail Cisneros", W / 2 + 40, H - 15, { align: "center" });
+      docFinal.text("MAGISTER EN TALENTO HUMANO", W / 2 + 40, H - 7, { align: "center" });
+    }
+
+    docFinal.save(`Certificados_Todos_Octubre2026_${new Date().toISOString().split("T")[0]}.pdf`);
+  };
+
+  // DESCARGAR TODOS LOS CERTIFICADOS CON FECHA OCTUBRE 2025 EN UN SOLO PDF
+  const descargarTodosCertificados2025 = async () => {
+    const aprobados = datos.filter((r) => r.aprobado);
+    if (aprobados.length === 0) {
+      alert("No hay certificados para descargar");
+      return;
+    }
+
+    const toBase64 = (url) =>
+      fetch(url)
+        .then((r) => r.blob())
+        .then(
+          (blob) =>
+            new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            })
+        );
+
+    const [logoBase64, firmaBase64] = await Promise.all([
+      toBase64("/img/safemedic.png"),
+      toBase64("/img/firma.png"),
+    ]);
+
+    const docFinal = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+    for (let index = 0; index < aprobados.length; index++) {
+      const persona = aprobados[index];
+      
+      if (index > 0) {
+        docFinal.addPage();
+      }
+
+      const W = docFinal.internal.pageSize.getWidth();
+      const H = docFinal.internal.pageSize.getHeight();
+
+      const azulFondo1 = "#0d2d3e";
+      const azulFondo2 = "#00b8c6";
+      const dorado = "#d4af37";
+      const line = "#146781";
+
+      docFinal.setFillColor(azulFondo2);
+      docFinal.triangle(0, H, W * 0.40, H, 0, H * 0.5, "F");
+
+      docFinal.setFillColor(azulFondo1);
+      docFinal.triangle(0, 0, W * 0.28, 0, W*0, H-60, "F");
+
+      docFinal.setFillColor(dorado);
+      docFinal.circle(W * 0.08, H * 0.10, W * 0.07, "F");
+
+      docFinal.addImage(logoBase64, "PNG", W - 85, 5, 75, 25);
+      docFinal.setFont("garamond", "bold");
+      docFinal.setFontSize(70);
+      docFinal.setTextColor("#d4af37");
+      docFinal.text("CERTIFICADO", W / 2 + 40, 65, { align: "center" });
+
+      docFinal.setFont("helvetica", "normal");
+      docFinal.setFontSize(16);
+      docFinal.setTextColor("#444444");
+      docFinal.text("Otorgado a", W / 2 + 40, 80, { align: "center" });
+
+      docFinal.setFont("times", "italic");
+      docFinal.setFontSize(35);
+      docFinal.setTextColor("#000000");
+      docFinal.text(persona.nombre_completo, W / 2 + 30, 95, { align: "center" });
+
+      docFinal.setFont("helvetica", "normal");
+      docFinal.setFontSize(14);
+      docFinal.setTextColor("#000000");
+      docFinal.text(
+        "Por haber participado con éxito en la capacitación que abarca los siguientes temas:",
+        W / 2 + 35,
+        105,
+        { align: "center" }
+      );
+      docFinal.setFontSize(12);
+      docFinal.text("• Derechos laborales de hombres y mujeres", W / 2 + 40, 115, { align: "center" });
+      docFinal.text("• Igualdad de género", W / 2 + 18, 125, { align: "center" });
+      docFinal.text("• Erradicación de la violencia y no discriminación", W / 2 + 44, 135, { align: "center" });
+      docFinal.text("• Otros relacionados para establecer el trabajo de igual valor", W / 2 + 55, 145, { align: "center" });
+
+      docFinal.setFontSize(15);
+      docFinal.setTextColor("#000000");
+      docFinal.text("Fecha: JULIO 2025", W / 2 + 105, 155, { align: "center" });
+      docFinal.text("Duración: 40 horas", W / 2 - 35, 155, { align: "center" });
+
+      docFinal.setDrawColor(line);
+      docFinal.setLineWidth(0.8);
+      docFinal.line(W / 2, H - 25, W / 2 + 85, H - 25);
+
+      docFinal.addImage(firmaBase64, "PNG", W / 2 + 10, H - 58, 65, 32);
+      docFinal.setFont("times", "italic");
+      docFinal.text("Abigail Cisneros", W / 2 + 40, H - 15, { align: "center" });
+      docFinal.text("MAGISTER EN TALENTO HUMANO", W / 2 + 40, H - 7, { align: "center" });
+    }
+
+    docFinal.save(`Certificados_Todos_Octubre2025_${new Date().toISOString().split("T")[0]}.pdf`);
+  };
+
+  // ── Render ────────────────────────────────────────────────────
+  if (noAutorizado) {
+    return (
+      <div className="p-3">
+        <div className="alert alert-danger" role="alert">
+          <h4 className="alert-heading">❌ Acceso Denegado</h4>
+          <p>Solo los administradores pueden acceder a los resultados de pruebas.</p>
+          <hr />
+          <p className="mb-0">Proceso actual: <strong>{adminUser.proceso_name || 'No definido'}</strong></p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-3">
+      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h5 className="fw-bold mb-0">
+          Resultados – Prueba Final Talento Humano
+        </h5>
+        <div className="d-flex gap-2 flex-wrap">
+          <button className="btn btn-success btn-sm" onClick={exportarExcel}>
+            <i className="bi bi-file-earmark-excel me-1"></i>
+            Exportar Excel (aprobados)
+          </button>
+          <button className="btn-anio-2026" onClick={descargarTodosCertificados}>
+            <i className="bi bi-file-earmark-pdf me-1"></i>
+            Descargar Todos (2026)
+          </button>
+          <button className="btn-anio-2025" onClick={descargarTodosCertificados2025}>
+            <i className="bi bi-file-earmark-pdf me-1"></i>
+            Descargar Todos (2025)
+          </button>
+          <button className="btn btn-outline-secondary btn-sm" onClick={cargarDatos}>
+            <i className="bi bi-arrow-clockwise me-1"></i>
+            Actualizar
+          </button>
+        </div>
+      </div>
+
+      {/* Filtros */}
+      <div className="btn-group mb-3" role="group">
+        {["todos", "aprobados", "reprobados"].map((f) => (
+          <button
+            key={f}
+            type="button"
+            className={`btn btn-sm ${filtro === f ? "btn-dark" : "btn-outline-dark"}`}
+            onClick={() => setFiltro(f)}
+          >
+            {f.charAt(0).toUpperCase() + f.slice(1)}
+            {f === "aprobados" && (
+              <span className="badge bg-success ms-1">
+                {datos.filter((r) => r.aprobado).length}
+              </span>
+            )}
+            {f === "reprobados" && (
+              <span className="badge bg-danger ms-1">
+                {datos.filter((r) => !r.aprobado).length}
+              </span>
+            )}
+            {f === "todos" && (
+              <span className="badge bg-secondary ms-1">{datos.length}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {cargando ? (
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Cargando...</span>
+          </div>
+        </div>
+      ) : datosFiltrados.length === 0 ? (
+        <div className="alert alert-info">No hay registros para mostrar.</div>
+      ) : (
+        <div className="table-responsive">
+          <table className="table table-bordered table-hover table-sm align-middle">
+            <thead className="table-dark">
+              <tr>
+                <th>#</th>
+                <th>Nombre</th>
+                <th>Cédula</th>
+                <th>Cargo</th>
+                <th>Mejor Puntaje</th>
+                <th>Intentos</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+                {/*<th>Certificado</th>*/}
+              </tr>
+            </thead>
+            <tbody>
+              {datosFiltrados.map((r, i) => (
+                <tr key={r.usuario}>
+                  <td>{i + 1}</td>
+                  <td className="fw-semibold">{r.nombre_completo}</td>
+                  <td>{r.cedula}</td>
+                  <td>{r.cargo || "-"}</td>
+                  <td>
+                    <span className={`badge ${r.mejor_puntaje >= 70 ? "bg-success" : "bg-danger"}`}>
+                      {r.mejor_puntaje}%
+                    </span>
+                  </td>
+                  <td className="text-center">{r.total_intentos}</td>
+                  <td>
+                    {r.aprobado ? (
+                      <span className="badge bg-success">
+                        <i className="bi bi-check-circle me-1"></i>Aprobado
+                      </span>
+                    ) : (
+                      <span className="badge bg-danger">
+                        <i className="bi bi-x-circle me-1"></i>Reprobado
+                      </span>
+                    )}
+                  </td>
+                  <td>
+                    {r.ultima_fecha
+                      ? new Date(r.ultima_fecha).toLocaleDateString("es-EC")
+                      : "-"}
+                  </td>
+                  {/*<td>
+                    {r.aprobado ? (
+                      <button
+                        className="btn btn-outline-primary btn-sm"
+                        title="Descargar certificado PDF"
+                        onClick={() => generarCertificado(r)}
+                      >
+                        <i className="bi bi-file-earmark-pdf"> Descargar</i>
+                      </button>
+                    ) : (
+                      <span className="text-muted small">—</span>
+                    )}
+                  </td>*/}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
